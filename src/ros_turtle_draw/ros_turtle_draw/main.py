@@ -1,14 +1,16 @@
-from math import pi
-import rclpy
 import time
-from rclpy.node import Node
-from turtlesim.srv import Spawn, Kill, SetPen
+from math import pi
+
+import rclpy
 from geometry_msgs.msg import Twist, Vector3
+from rclpy.node import Node
+from turtlesim.srv import Kill, SetPen, Spawn
 
 zero_degrees = 0.0
 ninety_degrees = pi / 2
 one_eighty_degrees = pi
 two_seventy_degrees = (3 * pi) / 2
+
 class Instruction:
     def __init__(self, x: float, z: float):
         self.x = x
@@ -20,7 +22,7 @@ class Instruction:
 
 class Position:
     def __init__(self, x: float, y: float, rotation: float = 0.0):
-        if rotation not in [zero_degrees, ninety_degrees, one_eighty_degrees, two_seventy_degrees]:
+        if rotation not in [zero_degrees, ninety_degrees, one_eighty_degrees, two_seventy_degrees, -zero_degrees, -ninety_degrees, -one_eighty_degrees, -two_seventy_degrees]:
             raise Exception("Invalid rotation value. Must be 0, pi/2, pi, or 3pi/2")
 
         self.x = x
@@ -28,7 +30,7 @@ class Position:
         self.rotation = rotation
 
     def add_rotation(self, rotation: float):
-        if rotation not in [zero_degrees, ninety_degrees, one_eighty_degrees, two_seventy_degrees]:
+        if rotation not in [zero_degrees, ninety_degrees, one_eighty_degrees, two_seventy_degrees, -zero_degrees, -ninety_degrees, -one_eighty_degrees, -two_seventy_degrees]:
             raise Exception("Invalid rotation value. Must be 0, pi/2, pi, or 3pi/2")
 
         # loop around 360 degrees
@@ -104,7 +106,29 @@ class TurtleDraw(Node):
 
         # block until the turtle has moved
         # (i hate using fixed values but i haven't studied this enough to know how to do it properly)
-        time.sleep(1)
+        time.sleep(1.5)
+
+    def calculate_rotation(self, current_rotation: float, target_rotation: float):
+        # calculate the rotation needed to reach the target rotation
+        # it has to be the shortest path, so we need to check if we should rotate clockwise or counterclockwise
+        if current_rotation == target_rotation:
+            return 0.0
+
+        naive_rotation = target_rotation - current_rotation
+
+        # target rotation is in range [0, 2pi]
+        # current rotation is in range [0, 2pi]
+        # naive rotation is in range [-2pi, 2pi]
+
+        # if the naive rotation is bigger than 180 (pi), we should rotate the other way
+        if naive_rotation > pi:
+            return naive_rotation - (2 * pi)
+
+        # if the naive rotation is smaller than -180 (-pi), we should rotate the other way
+        if naive_rotation < (-1 * pi):
+            return naive_rotation + (2 * pi)
+
+        return naive_rotation
 
     def move_to(self, position: Position):
         # instruction moves forward by X and rotates by Z, Z being a multiple of pi (2pi = 360) , etc etc
@@ -118,25 +142,20 @@ class TurtleDraw(Node):
 
         rotation = self.position.rotation
 
+        target_rotation = zero_degrees
+        rotate_by = 0.0
+
         # move first x then y
         if x_distance != 0.0:
-            if rotation == ninety_degrees:
-                # moving vertically up, change to horizontal right
-                self.move(Instruction(0.0, two_seventy_degrees))
-            elif rotation == one_eighty_degrees:
-                # moving horizontally to the left, change to horizontal right
-                self.move(Instruction(0.0, one_eighty_degrees))
-            elif rotation == two_seventy_degrees:
-                # moving vertically down, change to horizontal right
-                self.move(Instruction(0.0, ninety_degrees))
-
-            time.sleep(0.2)
-
             if x_distance < 0:
                 # flip the direction to horizontal left
-                self.move(Instruction(0.0, one_eighty_degrees))
+                target_rotation = one_eighty_degrees
 
-            time.sleep(0.3)
+            # rotate to the target rotation
+            rotate_by = self.calculate_rotation(rotation, target_rotation)
+            if rotate_by != 0.0:
+                self.move(Instruction(0.0, rotate_by))
+                time.sleep(0.2)
 
             # move the distance
             self.move(Instruction(abs(x_distance), 0.0))
@@ -144,32 +163,23 @@ class TurtleDraw(Node):
         time.sleep(0.3)
 
         rotation = self.position.rotation
+        target_rotation = ninety_degrees
 
         if y_distance != 0.0:
-            if rotation == zero_degrees:
-                # moving horizontally to the right, change to vertical up
-                self.move(Instruction(0.0, ninety_degrees))
-            elif rotation == one_eighty_degrees:
-                # moving horizontally to the left, change to vertical up
-                self.move(Instruction(0.0, two_seventy_degrees))
-            elif rotation == two_seventy_degrees:
-                # moving vertically down, change to vertical up
-                self.move(Instruction(0.0, one_eighty_degrees))
-
-            time.sleep(0.2)
-
             if y_distance < 0:
                 # flip the direction to vertical down
-                self.move(Instruction(0.0, one_eighty_degrees))
+                target_rotation = two_seventy_degrees
 
-            time.sleep(0.3)
+            # rotate to the target rotation
+            rotate_by = self.calculate_rotation(rotation, target_rotation)
+            if rotate_by != 0.0:
+                self.move(Instruction(0.0, rotate_by))
+                time.sleep(0.2)
 
             # move the distance
             self.move(Instruction(abs(y_distance), 0.0))
 
         time.sleep(0.3)
-
-        # yes this is not the best as sometimes the turtle will do multiple 360 degree turns before moving but its funny and i dont feel like overengineering this that much (already overengineered enough)
 
     def draw_shape(self):
         self.kill_turtle("turtle1") # Kill the default turtle
