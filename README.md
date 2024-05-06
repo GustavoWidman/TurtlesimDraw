@@ -39,3 +39,5 @@ ros2 run ros_turtle_draw main
 ## Demonstração
 
 A tartaruga desenhará os números "6" e "9" no simulador `turtlesim`. Segue o vídeo da demonstração:
+
+[Screencast from 2024-05-06 00-59-45.webm](https://github.com/GustavoWidman/PonderadaROS/assets/123963822/40112491-847f-4eb3-901b-60c2136fa9d4)
