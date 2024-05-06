@@ -1,5 +1,4 @@
 from math import pi
-from turtle import pos
 import rclpy
 import time
 from rclpy.node import Node
@@ -10,8 +9,6 @@ zero_degrees = 0.0
 ninety_degrees = pi / 2
 one_eighty_degrees = pi
 two_seventy_degrees = (3 * pi) / 2
-
-
 class Instruction:
     def __init__(self, x: float, z: float):
         self.x = x
@@ -35,7 +32,7 @@ class Position:
             raise Exception("Invalid rotation value. Must be 0, pi/2, pi, or 3pi/2")
 
         # loop around 360 degrees
-        self.rotation = (self.rotation + rotation) % (2 * pi)
+        self.rotation = (self.rotation + rotation) % (2 * one_eighty_degrees)
 
 
 class TurtleDraw(Node):
@@ -57,9 +54,8 @@ class TurtleDraw(Node):
     def kill_turtle(self, name: str):
         request = Kill.Request()
         request.name = name
-        future = self.kill_service.call_async(request)
+        self.kill_service.call_async(request)
         time.sleep(1)
-        # rclpy.spin_until_future_complete(self, future)
 
     def spawn_turtle(self, x, y):
         request = Spawn.Request()
@@ -68,9 +64,8 @@ class TurtleDraw(Node):
         self.position = Position(x, y)
         request.theta = 0.0
         request.name = self.turtle_name
-        future = self.spawn_service.call_async(request)
+        self.spawn_service.call_async(request)
         time.sleep(1)
-        # rclpy.spin_until_future_complete(self, future)
 
     def set_pen(self, r: int, g: int, b: int, width: int, off: int = 0):
         request = SetPen.Request()
@@ -79,9 +74,8 @@ class TurtleDraw(Node):
         request.b = b
         request.width = width
         request.off = off
-        future = self.setpen_service.call_async(request)
+        self.setpen_service.call_async(request)
         time.sleep(1)
-        # rclpy.spin_until_future_complete(self, future)
 
     def move(self, instruction: Instruction):
         global zero_degrees, ninety_degrees, one_eighty_degrees, two_seventy_degrees
@@ -108,7 +102,8 @@ class TurtleDraw(Node):
 
         print(f"Moved to position: {self.position.x}, {self.position.y} with rotation {self.position.rotation}")
 
-        # block until the turtle has moved (i hate using fixed values but i haven't studied this enough to know how to do it properly)
+        # block until the turtle has moved
+        # (i hate using fixed values but i haven't studied this enough to know how to do it properly)
         time.sleep(1)
 
     def move_to(self, position: Position):
@@ -135,12 +130,18 @@ class TurtleDraw(Node):
                 # moving vertically down, change to horizontal right
                 self.move(Instruction(0.0, ninety_degrees))
 
+            time.sleep(0.2)
+
             if x_distance < 0:
                 # flip the direction to horizontal left
                 self.move(Instruction(0.0, one_eighty_degrees))
 
+            time.sleep(0.3)
+
             # move the distance
-            return self.move(Instruction(abs(x_distance), 0.0))
+            self.move(Instruction(abs(x_distance), 0.0))
+
+        time.sleep(0.3)
 
         rotation = self.position.rotation
 
@@ -155,12 +156,20 @@ class TurtleDraw(Node):
                 # moving vertically down, change to vertical up
                 self.move(Instruction(0.0, one_eighty_degrees))
 
+            time.sleep(0.2)
+
             if y_distance < 0:
                 # flip the direction to vertical down
                 self.move(Instruction(0.0, one_eighty_degrees))
 
+            time.sleep(0.3)
+
             # move the distance
-            return self.move(Instruction(abs(y_distance), 0.0))
+            self.move(Instruction(abs(y_distance), 0.0))
+
+        time.sleep(0.3)
+
+        # yes this is not the best as sometimes the turtle will do multiple 360 degree turns before moving but its funny and i dont feel like overengineering this that much (already overengineered enough)
 
     def draw_shape(self):
         self.kill_turtle("turtle1") # Kill the default turtle
@@ -169,24 +178,26 @@ class TurtleDraw(Node):
 
         six_positions = [
             # draw a 6
-            Position(7.0, 5.0),
-            Position(7.0, 3.0),
-            Position(5.0, 3.0),
-            Position(5.0, 7.0),
-            Position(7.0, 7.0),
+            Position(7.0, 5.0), # two to the right (start at 5,5)
+            Position(7.0, 3.0), # two down
+            Position(5.0, 3.0), # two to the left
+            Position(5.0, 7.0), # four up
+            Position(7.0, 7.0), # two to the right
         ]
 
         nine_positions = [
             # draw a 9
-            Position(8.0, 5.0),
-            Position(10.0, 5.0),
-            Position(10.0, 7.0),
-            Position(8.0, 7.0),
-            Position(10.0, 7.0),
-            Position(10.0, 3.0),
-            Position(8.0, 3.0),
+            Position(8.0, 5.0), # two down (start at 8,7)
+            Position(10.0, 5.0), # two to the right
+            Position(10.0, 7.0), # two up
+            Position(8.0, 7.0), # two to the left
+            Position(10.0, 7.0), # two to the right
+            # (yes i know this repeats and i could disable pen but i'm lazy)
+            Position(10.0, 3.0), # four down
+            Position(8.0, 3.0), # two to the left
         ]
 
+        # draw le six
         for position in six_positions:
             self.move_to(position)
 
@@ -194,18 +205,25 @@ class TurtleDraw(Node):
         self.move_to(Position(8.0, 7.0)) # space between numbers
         self.set_pen(255, 0, 0, 2, 0) # start drawing again
 
+        # then ze nine
         for position in nine_positions:
             self.move_to(position)
 
+        #  /$$   /$$ /$$$$$$  /$$$$$$  /$$$$$$$$
+        # | $$$ | $$|_  $$_/ /$$__  $$| $$_____/
+        # | $$$$| $$  | $$  | $$  \__/| $$
+        # | $$ $$ $$  | $$  | $$      | $$$$$
+        # | $$  $$$$  | $$  | $$      | $$__/
+        # | $$\  $$$  | $$  | $$    $$| $$
+        # | $$ \  $$ /$$$$$$|  $$$$$$/| $$$$$$$$
+        # |__/  \__/|______/ \______/ |________/
+
+        print("\nNice")
+
 def main(args=None):
     rclpy.init(args=args)
-
-
     process = TurtleDraw()
     process.draw_shape()
-
-    rclpy.spin(process)
-
     process.destroy_node()
     rclpy.shutdown()
 
