@@ -7,9 +7,9 @@ from rclpy.node import Node
 from turtlesim.srv import Kill, SetPen, Spawn
 
 zero_degrees = 0.0
-ninety_degrees = pi / 2
-one_eighty_degrees = pi
-two_seventy_degrees = (3 * pi) / 2
+ninety_degrees = round(pi / 2, 2)
+one_eighty_degrees = round(pi, 2)
+two_seventy_degrees = round((3 * pi) / 2, 2)
 
 class Instruction:
     def __init__(self, x: float, z: float):
@@ -17,24 +17,28 @@ class Instruction:
         self.z = z
 
     def export(self):
-        return Twist(linear=Vector3(x=self.x), angular=Vector3(z=self.z))
+        return Twist(linear=Vector3(x=round(self.x, 2)), angular=Vector3(z=round(self.z, 2)))
 
 
 class Position:
     def __init__(self, x: float, y: float, rotation: float = 0.0):
+        rotation = round(rotation, 2)
+
         if rotation not in [zero_degrees, ninety_degrees, one_eighty_degrees, two_seventy_degrees, -zero_degrees, -ninety_degrees, -one_eighty_degrees, -two_seventy_degrees]:
-            raise Exception("Invalid rotation value. Must be 0, pi/2, pi, or 3pi/2")
+            raise Exception(f"Invalid rotation value. Must be 0, pi/2, pi, or 3pi/2, not {rotation}")
 
         self.x = x
         self.y = y
         self.rotation = rotation
 
     def add_rotation(self, rotation: float):
+        rotation = round(rotation, 2)
+
         if rotation not in [zero_degrees, ninety_degrees, one_eighty_degrees, two_seventy_degrees, -zero_degrees, -ninety_degrees, -one_eighty_degrees, -two_seventy_degrees]:
-            raise Exception("Invalid rotation value. Must be 0, pi/2, pi, or 3pi/2")
+            raise Exception(f"Invalid rotation value. Must be 0, pi/2, pi, or 3pi/2, not {rotation}")
 
         # loop around 360 degrees
-        self.rotation = (self.rotation + rotation) % (2 * one_eighty_degrees)
+        self.rotation = round((self.rotation + rotation) % (2 * one_eighty_degrees), 2)
 
 
 class TurtleDraw(Node):
@@ -122,13 +126,13 @@ class TurtleDraw(Node):
 
         # if the naive rotation is bigger than 180 (pi), we should rotate the other way
         if naive_rotation > pi:
-            return naive_rotation - (2 * pi)
+            return round(naive_rotation - (2 * one_eighty_degrees), 2)
 
         # if the naive rotation is smaller than -180 (-pi), we should rotate the other way
         if naive_rotation < (-1 * pi):
-            return naive_rotation + (2 * pi)
+            return round(naive_rotation + (2 * one_eighty_degrees), 2)
 
-        return naive_rotation
+        return round(naive_rotation, 2)
 
     def move_to(self, position: Position):
         # instruction moves forward by X and rotates by Z, Z being a multiple of pi (2pi = 360) , etc etc
