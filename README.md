@@ -1,4 +1,4 @@
-# PonderadaROS - Gustavo Wagon Widman
+# TurtlesimDraw - Gustavo Wagon Widman
 
 ## Descrição
 
@@ -11,13 +11,13 @@ Certifique-se de que você possui o ROS Humble instalado em sua máquina.
 Para instalar o pacote, clone o repositório:
 
 ```bash
-git clone https://github.com/GustavoWidman/PonderadaROS.git
+git clone https://github.com/GustavoWidman/TurtlesimDraw.git
 ```
 
 Em seguida, compile o pacote:
 
 ```bash
-cd PonderadaROS
+cd TurtlesimDraw
 colcon build
 ```
 
